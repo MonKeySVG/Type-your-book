@@ -3,11 +3,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@2.12.313/
 
 let text = "Il y a environ 13,5 milliards d’années, la matière, l’énergie, le temps et l’espace apparaissaient à l’occasion du Big Bang. L’histoire de ces traits fondamentaux de notre univers est ce qu’on appelle la physique. Environ 300 000 ans après leur apparition, la matière et l’énergie commencèrent à se fondre en structures complexes, appelées atomes, lesquels se combinèrent ensuite en molécules. L’histoire des atomes, des molécules et de leurs interactions est ce qu’on appelle la chimie. Voici près de 3,8 milliards d’années, sur la planète Terre, certaines molécules s’associèrent en structures particulièrement grandes et compliquées : les organismes. L’histoire des organismes est ce qu’on appelle la biologie. Voici près de 70 000 ans, des organismes appartenant à l’espèce Homo sapiens commencèrent à former des structures encore plus élaborées : les cultures. Le développement ultérieur de ces cultures humaines est ce qu’on appelle l’histoire. Trois révolutions importantes infléchirent le cours de l’histoire. La Révolution cognitive donna le coup d’envoi à l’histoire voici quelque 70 000 ans. La Révolution agricole l’accéléra voici environ 12 000 ans. La Révolution scientifique, engagée voici seulement 500 ans, pourrait bien mettre fin à l’histoire et amorcer quelque chose d’entièrement différent. Ce livre raconte comment ces trois révolutions ont affecté les êtres humains et les organismes qui les accompagnent."
 
+window.timer = null;
+
+window.gameStart = null;
+
+
 // Chaine de mots par defaut
 let words = text.split(' ');
 
 //  Nombre de mots dans words
 let wordCount = 100;
+
 
 // Nombre de mots tapés par l'utilisateur
 let wordsCounter = 0;
@@ -27,68 +33,27 @@ const cursor = document.getElementById('cursor');   // Curseur
 const inputPDF = document.getElementById('inputPDF');
 
 // Vérifie si un pdf a été importé
-inputPDF.addEventListener('change', function (event) {
-    const file = event.target.files[0];
+inputPDF.addEventListener('change', handleFile);
 
+
+function handleFile(event) {
+    const file = event.target.files[0];
 
     if (file) {
         const reader = new FileReader();
 
         reader.onload = function (e) {
-            const buffer = e.target.result;
-
-            traiterPDF(buffer)
-                .then(function (textePDF) {
-                    console.log(textePDF);
-                    text = textePDF
-                    newGame();
-                })
-                .catch(function (erreur) {
-                    console.error(erreur);
-                });
+            const fileContent = e.target.result;
+            console.log(fileContent); // This is your text file content as a string
+            text = fileContent;
+            newGame();
         };
 
-        reader.readAsArrayBuffer(file);
+        reader.readAsText(file);
     }
-});
-
-// Traitement du fichier pdf
-function traiterPDF(buffer) {
-    return new Promise((resolve, reject) => {
-        pdfjsLib.getDocument({ data: buffer }).promise
-            .then(function (pdf) {
-                const promises = [];
-
-                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                    promises.push(pdf.getPage(pageNum).then(function (page) {
-                        return page.getTextContent();
-                    }));
-                }
-
-                return Promise.all(promises);
-            })
-            .then(function (pageTextContents) {
-                let textePDF = '';
-
-                pageTextContents.forEach(function (textContent) {
-                    textContent.items.forEach(function (item) {
-                        // Ajoute un espace avant chaque mot sauf pour le premier mot
-                        if (textePDF !== '' && item.str !== ' ') {
-                            //textePDF += '';
-                        }
-                        textePDF += item.str;
-                    });
-                });
-
-                resolve(textePDF);
-
-
-            })
-            .catch(function (erreur) {
-                reject("Erreur lors du traitement du PDF : " + erreur);
-            });
-    });
 }
+
+
 
 
 const restartButton = document.getElementById('restart');
@@ -129,32 +94,43 @@ function formatWord(word) {
 // Démarre le script
 function newGame() {
 
+    removeClass(document.getElementById('game'), 'over');
+
+    // wordCount = text.length;
     wordsCounter = 0;
     correctCounter = 0;
     lettersCounter =0;
 
+    window.timer = null;
+    window.gameStart = null;
+
+
     text = replaceAll(text, "’", "'");
-<<<<<<< Updated upstream
-    words = text.split(/\t| /);
-=======
 
     const min = 0;
     const max = text.length - 700;
-    console.log("max = " + max);
     const randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
 
 
     const newText = text.substring(randomInt);
     words = newText.split(/\t| |\n/);
->>>>>>> Stashed changes
 
     document.getElementById('words').innerHTML = '';
+
+
+
+
     for (let i=0; i<wordCount; i++) {
         if (words[i] !== '') {
             document.getElementById('words').innerHTML += formatWord(words[i]);
         }
 
     }
+
+    // remettre le scroll a 0
+    const a = document.getElementById('words');
+    a.style.marginTop = 0 + 'px';
+
     addClass(document.querySelector('.word'), 'current');
     addClass(document.querySelector('.letter'), 'current');
 
@@ -163,7 +139,7 @@ function newGame() {
     cursor.style.top = firstLetter.getBoundingClientRect().top + 8 + 'px';
     cursor.style.left = firstLetter.getBoundingClientRect().left + 'px';
 
-    const game = document.getElementById('game')
+    const game = document.getElementById('game');
     game.focus();
 }
 
@@ -181,6 +157,20 @@ function updateAccuracy(correctCounter, lettersCounter) {
     el.innerText = acc + '%';
 }
 
+function getWPM() {
+    const currentTime = (new Date()).getTime();
+    const msPassed = currentTime - window.gameStart;
+    const sPassed = Math.round(msPassed / 1000);
+    const WPM = Math.round(wordsCounter * 60 / sPassed);
+    return(WPM);
+}
+
+
+function gameOver() {
+    clearInterval(window.timer);
+    addClass(document.getElementById('game'), 'over');
+    document.getElementById('timer').innerHTML = `WPM: ${getWPM()}`;
+}
 
 
 
@@ -197,6 +187,7 @@ document.getElementById('game').addEventListener('keydown', ev => {
     // Lettre à taper par l'utilisateur
     const currentLetter = document.querySelector('.letter.current');
     const expected = currentLetter?.innerHTML || ' ';
+
 
 
     // La touche entrée par l'utilisateur est une lettre (ou un chiffre)
@@ -220,6 +211,27 @@ document.getElementById('game').addEventListener('keydown', ev => {
     // La lettre à taper est la dernière lettre du texte
     const isLastLetterGlo = currentLetter === words.lastElementChild.lastElementChild;
 
+
+
+    // Lancer le timer
+    if (!window.timer && isLetter) {
+        // alert('start timer');
+        window.timer = setInterval(() => {
+            if (!window.gameStart) {
+                window.gameStart = (new Date()).getTime();
+            }
+
+            const currentTime = (new Date()).getTime();
+            const msPassed = currentTime - window.gameStart;
+            const sPassed = Math.round(msPassed / 1000);
+            document.getElementById('timer').innerHTML = sPassed;
+
+        }, 1000);
+    }
+
+
+
+
     // La distance entre le prochain mot et le haut du cadre est assez élevée pour activer le scroll
     let farFromTop = 0;
     if (currentWord.nextElementSibling) {
@@ -237,11 +249,9 @@ document.getElementById('game').addEventListener('keydown', ev => {
         if (isLastLetterGlo) {
             if (key === expected) {
                 correctCounter++;
-                console.log("fini");
-                // Fin du texte
-                // A compléter
+                gameOver();
             } else if (isSpace) {
-                // Fin du texte
+                gameOver();
             }
         }
 
@@ -275,7 +285,14 @@ document.getElementById('game').addEventListener('keydown', ev => {
 
     // L'utilisateur doit entrer un espace
     if (isSpace) {
-        wordsCounter++;
+
+        // Vérifier si le mot à été tapé correctement
+        const currentWordLetters = currentWord.children;
+        if (Array.from(currentWordLetters).every(child => child.classList.contains('correct'))) {
+            wordsCounter++;
+        }
+
+
         // L'utilisateur ne devais pas taper un espace
         if (expected !== ' ') {
             // On invalide toutes les lettres du mot

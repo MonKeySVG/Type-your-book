@@ -134,7 +134,19 @@ function newGame() {
     lettersCounter =0;
 
     text = replaceAll(text, "’", "'");
+<<<<<<< Updated upstream
     words = text.split(/\t| /);
+=======
+
+    const min = 0;
+    const max = text.length - 700;
+    console.log("max = " + max);
+    const randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
+
+
+    const newText = text.substring(randomInt);
+    words = newText.split(/\t| |\n/);
+>>>>>>> Stashed changes
 
     document.getElementById('words').innerHTML = '';
     for (let i=0; i<wordCount; i++) {
